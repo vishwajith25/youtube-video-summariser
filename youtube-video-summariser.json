@@ -1,0 +1,212 @@
+{
+  "cells": [
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "id": "gsBIH37hQEi-"
+      },
+      "outputs": [],
+      "source": [
+        "#Install packages\n",
+        "!pip install streamlit pytube youtube_transcript_api transformers librosa jiwer\n",
+        "!pip install git+https://github.com/openai/whisper.git"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "5BZRzzdCI0T-",
+        "outputId": "acab8f48-8ef4-49dd-9a80-4169dbb3f8f2"
+      },
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Writing app.py\n"
+          ]
+        }
+      ],
+      "source": [
+        "\n",
+        "%%writefile app.py\n",
+        "#Import necessary libraries\n",
+        "import streamlit as st\n",
+        "from pytube import YouTube\n",
+        "from youtube_transcript_api import YouTubeTranscriptApi\n",
+        "from transformers import pipeline\n",
+        "import whisper\n",
+        "\n",
+        "# Define function to get YouTube video transcript\n",
+        "def get_video_transcript(video_url):\n",
+        "    video_id = video_url.split(\"=\")[1]\n",
+        "    transcript = YouTubeTranscriptApi.get_transcript(video_id)\n",
+        "    result = \"\"\n",
+        "    for i in transcript:\n",
+        "        result += ' ' + i['text']\n",
+        "    return result\n",
+        "\n",
+        "# Define function to summarize text\n",
+        "def summarize_text(text, max_chars=1000):\n",
+        "    summarizer = pipeline('summarization')\n",
+        "    summarized_text = []\n",
+        "    num_iters = int(len(text) / max_chars)\n",
+        "    for i in range(0, num_iters + 1):\n",
+        "        start = i * max_chars\n",
+        "        end = (i + 1) * max_chars\n",
+        "        out = summarizer(text[start:end])\n",
+        "        out = out[0]['summary_text']\n",
+        "        summarized_text.append(out)\n",
+        "    return summarized_text\n",
+        "\n",
+        "# Function to extract transcript from video using pytube and whisper\n",
+        "def extract_transcript_from_video(video_url):\n",
+        "    link = video_url\n",
+        "    try:\n",
+        "        yt = YouTube(link)\n",
+        "    except:\n",
+        "        print(\"Connection Error\")\n",
+        "\n",
+        "    yt.streams.filter(file_extension='mp4')\n",
+        "    stream = yt.streams.get_by_itag(139)\n",
+        "    stream.download('',\"Audio.mp4\")\n",
+        "\n",
+        "    model = whisper.load_model(\"base\")\n",
+        "    result = model.transcribe(\"Audio.mp4\")\n",
+        "\n",
+        "    return result['text']\n",
+        "\n",
+        "# Streamlit app code\n",
+        "def main():\n",
+        "    st.title(\"YouTube Video Summarizer\")\n",
+        "\n",
+        "    # Input for YouTube video URL\n",
+        "    youtube_url = st.text_input(\"Enter YouTube Video URL:\")\n",
+        "\n",
+        "    # Display YouTube video\n",
+        "    if youtube_url:\n",
+        "        st.write(\"YouTube Video:\")\n",
+        "        video_id = youtube_url.split(\"=\")[-1]\n",
+        "        st.video(\"https://www.youtube.com/watch?v=\" + video_id)\n",
+        "\n",
+        "        try:\n",
+        "            # Get transcript and summarize\n",
+        "            st.write(\"Processing...\")\n",
+        "            transcript = get_video_transcript(youtube_url)\n",
+        "            summarized_text = summarize_text(transcript)\n",
+        "\n",
+        "            # Display summarized text\n",
+        "            st.subheader(\"Summarized Text:\")\n",
+        "            for summary in summarized_text:\n",
+        "                st.write(summary)\n",
+        "\n",
+        "        except:\n",
+        "            # If transcript extraction fails, use audio to text conversion\n",
+        "            st.write(\"Transcript not available, extracting from audio...\")\n",
+        "            extracted_text = extract_transcript_from_video(youtube_url)\n",
+        "            if extracted_text:\n",
+        "                summarized_text = summarize_text(extracted_text)\n",
+        "                st.subheader(\"Summarized Text:\")\n",
+        "                for summary in summarized_text:\n",
+        "                    st.write(summary)\n",
+        "            else:\n",
+        "                st.write(\"Failed to extract transcript from video.\")\n",
+        "\n",
+        "# Run the Streamlit app\n",
+        "if __name__ == \"__main__\":\n",
+        "    main()"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "MGngVDOxEiDG",
+        "outputId": "80a6f55c-0f97-4808-fb6c-b6c86ee9a55b"
+      },
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "34.124.224.33\n"
+          ]
+        }
+      ],
+      "source": [
+        "!wget -q -O - ipv4.icanhazip.com"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "JdD1fFa0EpcW",
+        "outputId": "82d5ec41-639b-4144-b028-50ec0a8316c6"
+      },
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "\n",
+            "Collecting usage statistics. To deactivate, set browser.gatherUsageStats to False.\n",
+            "\u001b[0m\n",
+            "\u001b[0m\n",
+            "\u001b[34m\u001b[1m  You can now view your Streamlit app in your browser.\u001b[0m\n",
+            "\u001b[0m\n",
+            "\u001b[34m  Network URL: \u001b[0m\u001b[1mhttp://172.28.0.12:8501\u001b[0m\n",
+            "\u001b[34m  External URL: \u001b[0m\u001b[1mhttp://34.124.224.33:8501\u001b[0m\n",
+            "\u001b[0m\n",
+            "\u001b[K\u001b[?25hnpx: installed 22 in 3.725s\n",
+            "your url is: https://angry-files-swim.loca.lt\n",
+            "2024-03-06 06:55:26.818473: E external/local_xla/xla/stream_executor/cuda/cuda_dnn.cc:9261] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered\n",
+            "2024-03-06 06:55:26.818546: E external/local_xla/xla/stream_executor/cuda/cuda_fft.cc:607] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered\n",
+            "2024-03-06 06:55:26.820028: E external/local_xla/xla/stream_executor/cuda/cuda_blas.cc:1515] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered\n",
+            "2024-03-06 06:55:28.116404: W tensorflow/compiler/tf2tensorrt/utils/py_utils.cc:38] TF-TRT Warning: Could not find TensorRT\n",
+            "No model was supplied, defaulted to sshleifer/distilbart-cnn-12-6 and revision a4f8f3e (https://huggingface.co/sshleifer/distilbart-cnn-12-6).\n",
+            "Using a pipeline without specifying a model name and revision in production is not recommended.\n",
+            "config.json: 100% 1.80k/1.80k [00:00<00:00, 7.92MB/s]\n",
+            "pytorch_model.bin: 100% 1.22G/1.22G [00:06<00:00, 188MB/s]\n",
+            "/usr/local/lib/python3.10/dist-packages/torch/_utils.py:831: UserWarning: TypedStorage is deprecated. It will be removed in the future and UntypedStorage will be the only storage class. This should only matter to you if you are using storages directly.  To access UntypedStorage directly, use tensor.untyped_storage() instead of tensor.storage()\n",
+            "  return self.fget.__get__(instance, owner)()\n",
+            "tokenizer_config.json: 100% 26.0/26.0 [00:00<00:00, 124kB/s]\n",
+            "vocab.json: 100% 899k/899k [00:00<00:00, 30.4MB/s]\n",
+            "merges.txt: 100% 456k/456k [00:00<00:00, 58.5MB/s]\n",
+            "Your max_length is set to 142, but your input_length is only 135. Since this is a summarization task, where outputs shorter than the input are typically wanted, you might consider decreasing max_length manually, e.g. summarizer('...', max_length=67)\n"
+          ]
+        }
+      ],
+      "source": [
+        "! streamlit run app.py & npx localtunnel --port 8501"
+      ]
+    }
+  ],
+  "metadata": {
+    "accelerator": "GPU",
+    "colab": {
+      "provenance": [],
+      "gpuType": "T4"
+    },
+    "kernelspec": {
+      "display_name": "Python 3",
+      "name": "python3"
+    },
+    "language_info": {
+      "name": "python"
+    }
+  },
+  "nbformat": 4,
+  "nbformat_minor": 0
+}
